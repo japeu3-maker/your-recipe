@@ -66,6 +66,23 @@ function formatDuration(sec: number | null): string | null {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+async function getDishThumbs(): Promise<{ slug: string; thumb: string | null }[]> {
+  const supabase = await createClient();
+  const results: { slug: string; thumb: string | null }[] = [];
+  for (const dish of DISHES) {
+    const { data: master } = await supabase.from("dishes").select("id").eq("slug", dish.slug).single();
+    if (!master) { results.push({ slug: dish.slug, thumb: null }); continue; }
+    const { data: rows } = await supabase
+      .from("video_dishes").select("video_id").eq("dish_id", master.id).limit(50);
+    if (!rows || rows.length === 0) { results.push({ slug: dish.slug, thumb: null }); continue; }
+    const ids = rows.map((r: { video_id: string }) => r.video_id);
+    const pick = ids[Math.floor(Math.random() * ids.length)];
+    const { data: video } = await supabase.from("videos").select("thumbnail_url").eq("id", pick).eq("is_published", true).single();
+    results.push({ slug: dish.slug, thumb: video?.thumbnail_url ?? null });
+  }
+  return results;
+}
+
 async function getInfluencers(): Promise<Influencer[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -609,7 +626,7 @@ function Footer() {
 
 // ===== メインページ =====
 export default async function Home() {
-  const [allVideos, influencers] = await Promise.all([getAllVideos(), getInfluencers()]);
+  const [allVideos, influencers, dishThumbsData] = await Promise.all([getAllVideos(), getInfluencers(), getDishThumbs()]);
 
   // ヒーロー：最新20件からランダム
   const heroPool = allVideos.filter(v => v.thumbnail_url).slice(0, 20);
@@ -624,12 +641,11 @@ export default async function Home() {
   const byGenre = (slug: string) => allVideos.filter((v) => v.genres.some((g) => g.slug === slug));
   const bySituation = (slug: string) => allVideos.filter((v) => v.situations.some((s) => s.slug === slug));
 
-  // 料理で探すセクション：各料理のランダムサムネ
-  const dishThumbs = DISHES.map((d) => {
-    const vids = byDish(d.slug).filter(v => v.thumbnail_url);
-    const pick = vids.length > 0 ? vids[Math.floor(Math.random() * vids.length)] : null;
-    return { ...d, thumb: pick?.thumbnail_url ?? null };
-  });
+  // 料理で探すセクション：DBから直接取得したサムネ
+  const dishThumbs = DISHES.map((d) => ({
+    ...d,
+    thumb: dishThumbsData.find(t => t.slug === d.slug)?.thumb ?? null,
+  }));
 
   return (
     <div className="min-h-screen" style={{ background: "#faf8f5" }}>
