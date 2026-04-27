@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         if (!id) {
           const { data: newIng } = await supabase
             .from("ingredients").insert({ slug, name: slug }).select("id").single();
-          if (newIng) { id = newIng.id; ingredientMap.set(slug, id); }
+          if (newIng && newIng.id != null) { id = newIng.id as number; ingredientMap.set(slug, id); }
         }
         if (id) ingredientRows.push({ video_id: video.id, ingredient_id: id, source: "ai" });
       }
