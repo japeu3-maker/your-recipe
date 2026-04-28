@@ -644,9 +644,11 @@ export default async function Home() {
   const subPool = allVideos.filter(v => v !== heroVideo && v.thumbnail_url);
   const shuffled = [...subPool].sort(() => Math.random() - 0.5).slice(0, 6);
 
-  const byDish = (slug: string) => allVideos.filter((v) => v.dishes.some((d) => d.slug === slug));
-  const byGenre = (slug: string) => allVideos.filter((v) => v.genres.some((g) => g.slug === slug));
-  const bySituation = (slug: string) => allVideos.filter((v) => v.situations.some((s) => s.slug === slug));
+  // カテゴリ行用にシャッフル（リロードのたびにランダム表示）
+  const shuffledForRows = [...allVideos].sort(() => Math.random() - 0.5);
+  const byDish = (slug: string) => shuffledForRows.filter((v) => v.dishes.some((d) => d.slug === slug));
+  const byGenre = (slug: string) => shuffledForRows.filter((v) => v.genres.some((g) => g.slug === slug));
+  const bySituation = (slug: string) => shuffledForRows.filter((v) => v.situations.some((s) => s.slug === slug));
 
   // 料理で探すセクション：DBから直接取得したサムネ
   const dishThumbs = DISHES.map((d) => ({
