@@ -6,6 +6,8 @@ import { SearchBox } from "@/components/search-box";
 import type { VideoWithRelations, Influencer } from "@/types";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 const DISHES = [
   { slug: "karaage", name: "唐揚げ", emoji: "🍗" },
