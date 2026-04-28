@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { unstable_noStore as noStore } from "next/cache";
 import { createClient, createServiceClient } from "@/lib/supabase-server";
 import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
@@ -103,7 +104,8 @@ async function getInfluencers(): Promise<Influencer[]> {
 }
 
 async function getAllVideos(): Promise<VideoWithRelations[]> {
-  const supabase = await createClient();
+  noStore();
+  const supabase = await createServiceClient();
   const { data } = await supabase
     .from("videos")
     .select(`*, influencer:influencers(*),
@@ -113,7 +115,7 @@ async function getAllVideos(): Promise<VideoWithRelations[]> {
       dishes:video_dishes(dish:dishes(*))`)
     .eq("is_published", true)
     .order("published_at", { ascending: false })
-    .limit(300);
+    .limit(600);
 
   if (!data) return [];
   return data.map((v: Record<string, unknown>) => ({
@@ -635,6 +637,7 @@ function Footer() {
 
 // ===== メインページ =====
 export default async function Home() {
+  noStore();
   const [allVideos, influencers, dishThumbsData] = await Promise.all([getAllVideos(), getInfluencers(), getDishThumbs()]);
 
   // ヒーロー：最新20件からランダム
