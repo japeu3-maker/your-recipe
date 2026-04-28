@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase-server";
+import { createClient, createServiceClient } from "@/lib/supabase-server";
 import { Logo } from "@/components/logo";
 import { SearchBox } from "@/components/search-box";
 import type { VideoWithRelations, Influencer } from "@/types";
@@ -67,7 +67,7 @@ function formatDuration(sec: number | null): string | null {
 }
 
 async function getDishThumbs(): Promise<{ slug: string; thumb: string | null }[]> {
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
   const results: { slug: string; thumb: string | null }[] = [];
   for (const dish of DISHES) {
     const { data: master } = await supabase.from("dishes").select("id").eq("slug", dish.slug).single();
@@ -76,9 +76,16 @@ async function getDishThumbs(): Promise<{ slug: string; thumb: string | null }[]
       .from("video_dishes").select("video_id").eq("dish_id", master.id).limit(50);
     if (!rows || rows.length === 0) { results.push({ slug: dish.slug, thumb: null }); continue; }
     const ids = rows.map((r: { video_id: string }) => r.video_id);
-    const pick = ids[Math.floor(Math.random() * ids.length)];
-    const { data: video } = await supabase.from("videos").select("thumbnail_url").eq("id", pick).eq("is_published", true).single();
-    results.push({ slug: dish.slug, thumb: video?.thumbnail_url ?? null });
+    // 公開済みでサムネあり動画を全部取得してからランダムに選ぶ
+    const { data: videos } = await supabase
+      .from("videos")
+      .select("thumbnail_url")
+      .in("id", ids)
+      .eq("is_published", true)
+      .not("thumbnail_url", "is", null);
+    if (!videos || videos.length === 0) { results.push({ slug: dish.slug, thumb: null }); continue; }
+    const pick = videos[Math.floor(Math.random() * videos.length)];
+    results.push({ slug: dish.slug, thumb: pick.thumbnail_url });
   }
   return results;
 }
