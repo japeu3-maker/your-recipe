@@ -34,6 +34,29 @@ async function getVideo(id: string): Promise<VideoWithRelations | null> {
   } as VideoWithRelations;
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const video = await getVideo(id);
+  if (!video) return {};
+  const title = video.title;
+  const description = `${video.influencer?.name ?? ""}による料理動画。${video.genres.map(g => g.name).join("・")}${video.ingredients.slice(0, 3).map(i => i.name).join("・")}のレシピ。`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: video.thumbnail_url ? [{ url: video.thumbnail_url, width: 1280, height: 720, alt: title }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: video.thumbnail_url ? [video.thumbnail_url] : [],
+    },
+  };
+}
+
 async function getRelatedVideos(video: VideoWithRelations): Promise<VideoWithRelations[]> {
   if (video.genres.length === 0) return [];
   const supabase = await createClient();

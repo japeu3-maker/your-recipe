@@ -124,6 +124,26 @@ const INGREDIENT_OPTIONS = [
   { slug: "cheese", name: "チーズ" }, { slug: "mushroom", name: "きのこ" },
 ];
 
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
+  const filters = [params.dish, params.genre, params.situation, params.ingredient].filter(Boolean);
+  const q = params.q;
+  let title = "動画一覧";
+  let description = "料理YouTuberの動画をジャンル・食材・料理名で絞り込んで探せます。";
+  if (q) {
+    title = `「${q}」の動画`;
+    description = `「${q}」に関する料理動画をまとめて紹介。`;
+  } else if (filters.length > 0) {
+    title = `${filters.join(" × ")}の動画`;
+    description = `${filters.join("・")}の料理動画をまとめて紹介。`;
+  }
+  return {
+    title,
+    description,
+    openGraph: { title, description },
+  };
+}
+
 export default async function VideosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = await searchParams;
   const videos = await getVideos(params);
