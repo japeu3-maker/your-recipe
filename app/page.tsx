@@ -93,6 +93,15 @@ async function getDishThumbs(): Promise<{ slug: string; thumb: string | null }[]
   return results;
 }
 
+async function getVideoCount(): Promise<number> {
+  const supabase = await createServiceClient();
+  const { count } = await supabase
+    .from("videos")
+    .select("*", { count: "exact", head: true })
+    .eq("is_published", true);
+  return count ?? 0;
+}
+
 async function getInfluencers(): Promise<Influencer[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -128,7 +137,7 @@ async function getAllVideos(): Promise<VideoWithRelations[]> {
 }
 
 // ===== ヘッダー =====
-function Header() {
+function Header({ count }: { count: number }) {
   return (
     <header className="border-b sticky top-0 z-40 bg-white/95 backdrop-blur"
       style={{ borderColor: "#e8e0d5" }}>
@@ -136,6 +145,12 @@ function Header() {
         <Link href="/" className="shrink-0">
           <Logo size="sm" color="#1a1714" />
         </Link>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] px-2.5 py-1 rounded-full font-medium"
+            style={{ background: "#fff7ed", color: "#f97316", fontFamily: "'Noto Sans JP', sans-serif", border: "1px solid #fed7aa" }}>
+            現在 <span style={{ fontWeight: 700 }}>{count.toLocaleString()}</span> レシピ掲載中
+          </span>
+        </div>
         <div className="flex-1" />
         <SearchBox size="sm" />
       </div>
@@ -638,7 +653,7 @@ function Footer() {
 // ===== メインページ =====
 export default async function Home() {
   noStore();
-  const [allVideos, influencers, dishThumbsData] = await Promise.all([getAllVideos(), getInfluencers(), getDishThumbs()]);
+  const [allVideos, influencers, dishThumbsData, videoCount] = await Promise.all([getAllVideos(), getInfluencers(), getDishThumbs(), getVideoCount()]);
 
   // ヒーロー：最新20件からランダム
   const heroPool = allVideos.filter(v => v.thumbnail_url).slice(0, 20);
@@ -663,7 +678,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen" style={{ background: "#faf8f5" }}>
-      <Header />
+      <Header count={videoCount} />
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         <div className="flex gap-8">
